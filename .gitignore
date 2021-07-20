@@ -2,3 +2,5 @@
 # vagrant
 .vagrant
 cscope*
+# Ignore IDEA config file
+.idea
