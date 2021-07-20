@@ -93,8 +93,8 @@ func TestPolicyAddDelete(t *testing.T) {
 		SrcIpAddr:  "10.10.10.0/24",
 		DstIpAddr:  "10.1.1.0/24",
 		IpProtocol: 6,
-		DstPort:    100,
-		SrcPort:    200,
+		DstPort:    "100/16",
+		SrcPort:    "200/16",
 		Action:     "allow",
 	}
 
@@ -113,8 +113,8 @@ func TestPolicyAddDelete(t *testing.T) {
 		SrcIpAddr:  "20.20.20.0/24",
 		DstIpAddr:  "20.2.2.0/24",
 		IpProtocol: 17,
-		DstPort:    300,
-		SrcPort:    400,
+		DstPort:    "300/16",
+		SrcPort:    "400/16",
 		Action:     "deny",
 	}
 

@@ -74,6 +74,32 @@ func ParseIPAddrMaskString(ipAddr string) (*net.IP, *net.IP, error) {
 
 }
 
+func ParsePortMaskString(port string) (uint16, uint16, error) {
+	mask := 0xFFFF
+	if strings.Contains(port, "/") {
+		s := strings.Split(port, "/")
+		portNum, err := strconv.ParseUint(s[0], 10, 16)
+		if err != nil {
+			log.Errorf("Error parsing port %d. Err: %v", portNum, err)
+		}
+		portMask, err := strconv.ParseUint(s[1], 10, 16)
+		if err != nil {
+			log.Errorf("Error parsing port mask %d. Err: %v", portMask, err)
+		}
+
+		mask = (0xFFFF << (16 - portMask)) & 0xFFFF
+		return uint16(portNum), uint16(mask), nil
+	}
+
+	portNum, err := strconv.ParseUint(port, 10, 16)
+	if err != nil {
+		log.Errorf("Error parsing port %d. Err: %v", portNum, err)
+	}
+
+	return uint16(portNum), uint16(mask), nil
+
+}
+
 // BuildGarpPkt builds a Gratuitous ARP packet
 func BuildGarpPkt(ip net.IP, mac net.HardwareAddr, vlanID uint16) *openflow13.PacketOut {
 

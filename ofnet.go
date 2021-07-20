@@ -193,8 +193,8 @@ type OfnetPolicyRule struct {
 	SrcIpAddr  string // source IP addrss and mask
 	DstIpAddr  string // Destination IP address and mask
 	IpProtocol uint8  // IP protocol number
-	SrcPort    uint16 // Source port
-	DstPort    uint16 // destination port
+	SrcPort    string // Source port
+	DstPort    string // destination port
 	TcpFlags   string // TCP flags to match: syn || syn,ack || ack || syn,!ack || !syn,ack;
 	Action     string // rule action: 'accept' or 'deny'
 }

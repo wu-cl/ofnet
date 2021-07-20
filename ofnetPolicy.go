@@ -160,6 +160,7 @@ func (self *PolicyAgent) AddRuleToTier(rule *OfnetPolicyRule, direction uint8, t
 	var ipDaMask *net.IP = nil
 	var ipSa *net.IP = nil
 	var ipSaMask *net.IP = nil
+	var dstPort, dstPortMask, srcPort, srcPortMask uint16
 	var flag, flagMask uint16
 	var flagPtr, flagMaskPtr *uint16
 	var err error
@@ -213,6 +214,24 @@ func (self *PolicyAgent) AddRuleToTier(rule *OfnetPolicyRule, direction uint8, t
 		}
 	}
 
+	// Parse dst port
+	if rule.DstPort != "" {
+		dstPort, dstPortMask, err = ParsePortMaskString(rule.DstPort)
+		if err != nil {
+			log.Errorf("Error parsing dst port %s. Err: %v", rule.DstPort, err)
+			return err
+		}
+	}
+
+	// Parse src port
+	if rule.SrcPort != "" {
+		srcPort, srcPortMask, err = ParsePortMaskString(rule.SrcPort)
+		if err != nil {
+			log.Errorf("Error parsing dst port %s. Err: %v", rule.SrcPort, err)
+			return err
+		}
+	}
+
 	// Setup TCP flags
 	if rule.IpProtocol == 6 && rule.TcpFlags != "" {
 		switch rule.TcpFlags {
@@ -241,19 +260,23 @@ func (self *PolicyAgent) AddRuleToTier(rule *OfnetPolicyRule, direction uint8, t
 	}
 	// Install the rule in policy table
 	ruleFlow, err := policyTable.NewFlow(ofctrl.FlowMatch{
-		Priority:     uint16(FLOW_POLICY_PRIORITY_OFFSET + rule.Priority),
-		Ethertype:    0x0800,
-		IpDa:         ipDa,
-		IpDaMask:     ipDaMask,
-		IpSa:         ipSa,
-		IpSaMask:     ipSaMask,
-		IpProto:      rule.IpProtocol,
-		TcpSrcPort:   rule.SrcPort,
-		TcpDstPort:   rule.DstPort,
-		UdpSrcPort:   rule.SrcPort,
-		UdpDstPort:   rule.DstPort,
-		TcpFlags:     flagPtr,
-		TcpFlagsMask: flagMaskPtr,
+		Priority:       uint16(FLOW_POLICY_PRIORITY_OFFSET + rule.Priority),
+		Ethertype:      0x0800,
+		IpDa:           ipDa,
+		IpDaMask:       ipDaMask,
+		IpSa:           ipSa,
+		IpSaMask:       ipSaMask,
+		IpProto:        rule.IpProtocol,
+		TcpSrcPort:     srcPort,
+		TcpDstPort:     dstPort,
+		TcpSrcPortMask: srcPortMask,
+		TcpDstPortMask: dstPortMask,
+		UdpSrcPort:     srcPort,
+		UdpDstPort:     dstPort,
+		UdpSrcPortMask: srcPortMask,
+		UdpDstPortMask: dstPortMask,
+		TcpFlags:       flagPtr,
+		TcpFlagsMask:   flagMaskPtr,
 	})
 	if err != nil {
 		log.Errorf("Error adding flow for rule {%v}. Err: %v", rule, err)
