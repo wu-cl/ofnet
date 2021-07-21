@@ -125,6 +125,7 @@ func ofctlDumpFlowMatch(brName string, tableId int, matchStr, actStr string) boo
 		return false
 	}
 
+	log.Infof("Flow dump: %s", flowList)
 	return ofctlFlowMatch(flowList, tableId, matchStr, actStr)
 }
 
@@ -540,6 +541,58 @@ func TestMatchSetIpFields(t *testing.T) {
 	// Make sure they are really gone
 	if ofctlDumpFlowMatch("ovsbr11", 0, "priority=100,tcp,in_port=1,nw_src=10.1.1.0/24,nw_dst=10.2.1.0/24",
 		"set_field:20.2.1.1->ip_dst,set_field:20.1.1.1->ip_src,goto_table:1") {
+		t.Errorf("in port flow still found in OVS after deleting it.")
+	}
+}
+
+// TestPortMask verifies port mask installed in ovs
+func TestPortMask(t *testing.T) {
+	ipSa := net.ParseIP("10.1.1.1").Mask(net.CIDRMask(24, 32))
+	ipDa := net.ParseIP("10.2.1.1").Mask(net.CIDRMask(24, 32))
+	ipAddrMask := net.ParseIP("255.255.255.0")
+	inPortFlow, err := ofActor.inputTable.NewFlow(FlowMatch{
+		Priority:  100,
+		InputPort: 1,
+		Ethertype: 0x0800,
+		IpSa:      &ipSa,
+		IpSaMask:  &ipAddrMask,
+		IpDa:      &ipDa,
+		IpDaMask:  &ipAddrMask,
+		IpProto:   IP_PROTO_TCP,
+		// src port range: 1000 - 1007
+		TcpSrcPort:     0x03e8,
+		TcpSrcPortMask: 0xfff8,
+		// dst port range: 1536 - 1791
+		TcpDstPort:     0x0600,
+		TcpDstPortMask: 0xff00,
+	})
+	if err != nil {
+		t.Errorf("Error creating inport flow. Err: %v", err)
+	}
+
+	// install it
+	err = inPortFlow.Next(ofActor.nextTable)
+	if err != nil {
+		t.Errorf("Error installing inport flow. Err: %v", err)
+	}
+
+	// verify metadata action exists
+	if !ofctlDumpFlowMatch("ovsbr11", 0,
+		"priority=100,tcp,in_port=1,nw_src=10.1.1.0/24,nw_dst=10.2.1.0/24,tp_src=0x3e8/0xfff8,tp_dst=0x600/0xff00",
+		"goto_table:1") {
+		t.Errorf("in port flow not found in OVS.")
+	}
+
+	// delete the flow
+	err = inPortFlow.Delete()
+	if err != nil {
+		t.Errorf("Error deleting the inPort flow. Err: %v", err)
+	}
+
+	// Make sure they are really gone
+	if ofctlDumpFlowMatch("ovsbr11", 0,
+		"priority=100,tcp,in_port=1,nw_src=10.1.1.0/24,nw_dst=10.2.1.0/24,tp_src=0x3e8/0xfff8,tp_dst=0x600/0xff00",
+		"goto_table:1") {
 		t.Errorf("in port flow still found in OVS after deleting it.")
 	}
 }
