@@ -622,8 +622,8 @@ func (self *OvsDriver) CreatePort(intfName, intfType string, vlanTag uint) error
 // Delete a port from OVS
 func (self *OvsDriver) DeletePort(intfName string) error {
 	// lock the cache for read
-	self.lock.RLock()
-	defer self.lock.RUnlock()
+
+
 
 	portUuidStr := intfName
 	portUuid := []libovsdb.UUID{{GoUuid: portUuidStr}}
@@ -646,6 +646,7 @@ func (self *OvsDriver) DeletePort(intfName string) error {
 	}
 
 	// also fetch the port-uuid from cache
+	self.lock.RLock()
 	for uuid, row := range self.ovsdbCache["Port"] {
 		name := row.Fields["name"].(string)
 		if name == intfName {
@@ -653,6 +654,7 @@ func (self *OvsDriver) DeletePort(intfName string) error {
 			break
 		}
 	}
+	self.lock.RUnlock()
 
 	// mutate the Ports column of the row in the Bridge table
 	mutateSet, _ := libovsdb.NewOvsSet(portUuid)
