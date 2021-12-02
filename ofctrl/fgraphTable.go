@@ -17,9 +17,6 @@ package ofctrl
 // This file implements the forwarding graph API for the table
 
 import (
-	"fmt"
-	"sync"
-
 	"github.com/contiv/libOpenflow/openflow13"
 
 	log "github.com/Sirupsen/logrus"
@@ -29,8 +26,6 @@ import (
 type Table struct {
 	Switch  *OFSwitch
 	TableId uint8
-	flowDb  map[string]*Flow // database of flow entries
-	lock    sync.Mutex       // lock flodb modification
 }
 
 // Fgraph element type for table
@@ -48,10 +43,6 @@ var globalFlowID uint64 = 1
 
 // Create a new flow on the table
 func (self *Table) NewFlow(match FlowMatch) (*Flow, error) {
-	// modifications to flowdb requires a lock
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
 	flow := new(Flow)
 	flow.Table = self
 	flow.Match = match
@@ -66,34 +57,7 @@ func (self *Table) NewFlow(match FlowMatch) (*Flow, error) {
 
 	log.Debugf("Creating new flow for match: %+v", match)
 
-	// See if the flow already exists
-	flowKey := flow.FlowKey()
-	if self.flowDb[flowKey] != nil {
-		log.Errorf("Flow %s already exists", flowKey)
-		return nil, fmt.Errorf("Flow %s already exists", flowKey)
-	}
-
-	log.Debugf("Added flow: %s", flowKey)
-
-	// Save it in DB. We dont install the flow till its next graph elem is set
-	self.flowDb[flowKey] = flow
-
 	return flow, nil
-}
-
-// Delete a flow from the table
-func (self *Table) DeleteFlow(flowKey string) error {
-	// modifications to flowdb requires a lock
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	// first empty it and then delete it.
-	self.flowDb[flowKey] = nil
-	delete(self.flowDb, flowKey)
-
-	log.Infof("Deleted flow: %s", flowKey)
-
-	return nil
 }
 
 // Delete the table

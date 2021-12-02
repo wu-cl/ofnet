@@ -34,7 +34,6 @@ func (self *OFSwitch) initFgraph() error {
 	table := new(Table)
 	table.Switch = self
 	table.TableId = 0
-	table.flowDb = make(map[string]*Flow)
 	self.tableDb[0] = table
 
 	// Create drop action
@@ -81,7 +80,6 @@ func (self *OFSwitch) NewTable(tableId uint8) (*Table, error) {
 	table := new(Table)
 	table.Switch = self
 	table.TableId = tableId
-	table.flowDb = make(map[string]*Flow)
 	// Save it in the DB
 	self.tableDb[tableId] = table
 

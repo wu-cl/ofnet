@@ -1284,9 +1284,24 @@ func (self *Flow) Delete() error {
 		self.Table.Switch.Send(flowMod)
 	}
 
-	// Delete it from the table
-	flowKey := self.FlowKey()
-	self.Table.DeleteFlow(flowKey)
+	return nil
+}
+
+func DeleteFlow(table *Table, priority uint16, flowID uint64) error {
+	// Create a flow mode entry
+	flowMod := openflow13.NewFlowMod()
+	flowMod.Command = openflow13.FC_DELETE
+	flowMod.TableId = table.TableId
+	flowMod.Priority = priority
+	flowMod.Cookie = flowID
+	flowMod.CookieMask = uint64(0xffffffffffffffff)
+	flowMod.OutPort = openflow13.P_ANY
+	flowMod.OutGroup = openflow13.OFPG_ANY
+
+	log.Debugf("Sending DELETE flow mod: %+v", flowMod)
+
+	// Send the message
+	table.Switch.Send(flowMod)
 
 	return nil
 }
